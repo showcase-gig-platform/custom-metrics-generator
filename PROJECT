@@ -1,0 +1,6 @@
+domain: oder.com
+layout:
+- go.kubebuilder.io/v3
+projectName: custom-metrics-generator
+repo: github.com/showcase-gig-platform/custom-metrics-generator
+version: "3"
