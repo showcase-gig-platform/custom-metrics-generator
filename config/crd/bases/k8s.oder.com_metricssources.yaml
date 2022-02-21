@@ -35,13 +35,41 @@ spec:
           spec:
             description: MetricsSourceSpec defines the desired state of MetricsSource
             properties:
-              foo:
-                description: Foo is an example field of MetricsSource. Edit metricssource_types.go
-                  to remove/update
+              labels:
+                additionalProperties:
+                  type: string
+                type: object
+              metrics:
+                items:
+                  properties:
+                    duration:
+                      type: string
+                    start:
+                      type: string
+                    value:
+                      type: integer
+                  required:
+                  - duration
+                  - start
+                  - value
+                  type: object
+                type: array
+              metricsName:
                 type: string
+            required:
+            - metricsName
             type: object
           status:
             description: MetricsSourceStatus defines the observed state of MetricsSource
+            properties:
+              currentValue:
+                type: integer
+              lastSchedule:
+                format: date-time
+                type: string
+              nextSchedule:
+                format: date-time
+                type: string
             type: object
         type: object
     served: true

@@ -28,14 +28,30 @@ type MetricsSourceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of MetricsSource. Edit metricssource_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	MetricsName string                    `json:"metricsName"`
+	Labels      map[string]string         `json:"labels,omitempty"`
+	Metrics     []MetricsSourceSpecMetric `json:"metrics,omitempty"`
+}
+
+type MetricsSourceSpecMetric struct {
+	Start    string          `json:"start"`
+	Duration metav1.Duration `json:"duration"`
+	Value    int             `json:"value"`
 }
 
 // MetricsSourceStatus defines the observed state of MetricsSource
 type MetricsSourceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	// +optional
+	CurrentValue int `json:"currentValue,omitempty"`
+
+	// +optional
+	LastSchedule metav1.Time `json:"lastSchedule,omitempty"`
+
+	// +optional
+	NextSchedule metav1.Time `json:"nextSchedule,omitempty"`
 }
 
 //+kubebuilder:object:root=true
