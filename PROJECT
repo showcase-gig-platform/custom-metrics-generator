@@ -3,4 +3,14 @@ layout:
 - go.kubebuilder.io/v3
 projectName: custom-metrics-generator
 repo: github.com/showcase-gig-platform/custom-metrics-generator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: oder.com
+  group: k8s
+  kind: MetricsSource
+  path: github.com/showcase-gig-platform/custom-metrics-generator/api/v1
+  version: v1
 version: "3"
