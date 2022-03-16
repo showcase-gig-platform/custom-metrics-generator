@@ -1,6 +1,12 @@
 apiVersion: k8s.oder.com/v1
 kind: MetricsSource
 metadata:
-  name: metricssource-sample
+  name: one
 spec:
-  # TODO(user): Add fields here
+  metricsName: woooofoooo_metrics_dayooooo
+  labels: # メトリクスに付与するラベル
+    foo: bar
+  metrics:
+    - start: "*/3 * * * *"
+      duration: 2m
+      value: 5

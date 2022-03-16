@@ -28,15 +28,20 @@ type MetricsSourceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	MetricsName string                    `json:"metricsName"`
-	Labels      map[string]string         `json:"labels,omitempty"`
-	Metrics     []MetricsSourceSpecMetric `json:"metrics,omitempty"`
+	MetricsName string `json:"metricsName"`
+
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
+
+	Metrics []MetricsSourceSpecMetric `json:"metrics"`
 }
 
 type MetricsSourceSpecMetric struct {
-	Start    string          `json:"start"`
+	Start string `json:"start"`
+
 	Duration metav1.Duration `json:"duration"`
-	Value    int             `json:"value"`
+
+	Value int `json:"value"`
 }
 
 // MetricsSourceStatus defines the observed state of MetricsSource
@@ -45,17 +50,25 @@ type MetricsSourceStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// +optional
-	CurrentValue int `json:"currentValue,omitempty"`
+	CurrentValue int `json:"currentValue"`
 
 	// +optional
-	LastSchedule metav1.Time `json:"lastSchedule,omitempty"`
+	Last MetricsSourceStatusSchedule `json:"lastSchedule,omitempty"`
 
 	// +optional
-	NextSchedule metav1.Time `json:"nextSchedule,omitempty"`
+	Next MetricsSourceStatusSchedule `json:"nextSchedule,omitempty"`
+}
+
+type MetricsSourceStatusSchedule struct {
+	Schedule metav1.Time `json:"start,omitempty"`
+
+	Value int `json:"value"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="current",type="integer",JSONPath=".status.currentValue"
 
 // MetricsSource is the Schema for the metricssources API
 type MetricsSource struct {

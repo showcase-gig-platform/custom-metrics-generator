@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: custom-metrics-generator
+  labels:
+    app.kubernetes.io/name: custom-metrics-generator
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: custom-metrics-generator
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+      labels:
+        app.kubernetes.io/name: custom-metrics-generator
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - command:
+            - /manager
+          image: 243574336202.dkr.ecr.ap-northeast-1.amazonaws.com/custom-metrics-generator:latest
+          name: controller
+          securityContext:
+            allowPrivilegeEscalation: false
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+              name: metrics
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 50m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 32Mi
+      serviceAccountName: custom-metrics-generator

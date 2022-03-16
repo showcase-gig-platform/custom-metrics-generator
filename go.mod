@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.17.0
+	github.com/showcase-gig-platform/cron/v3 v3.0.2-0.20220221112246-99bd732ffc46
 	k8s.io/apimachinery v0.23.0
 	k8s.io/client-go v0.23.0
 	sigs.k8s.io/controller-runtime v0.11.0
