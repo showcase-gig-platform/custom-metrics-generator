@@ -170,13 +170,13 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *MetricsSourceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *MetricsSourceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	// log.Log.Info("setupwithmanager")
 
 	// TODO: sleepのフラグ・エラーハンドリングとか
 	go func() {
 		for {
-			r.updateAllStatusAndMetrics()
+			r.updateAllStatusAndMetrics(ctx)
 			time.Sleep(10 * time.Second)
 		}
 	}()
@@ -186,11 +186,8 @@ func (r *MetricsSourceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *MetricsSourceReconciler) updateAllStatusAndMetrics() {
+func (r *MetricsSourceReconciler) updateAllStatusAndMetrics(ctx context.Context) {
 	// log.Log.Info("updateAllStatusAndMetrics start")
-
-	// TODO: この雑なcontextは問題ないんか…
-	ctx := context.Background()
 
 	for key, collector := range collectors {
 		nn, err := resumeNamespacedName(key)
