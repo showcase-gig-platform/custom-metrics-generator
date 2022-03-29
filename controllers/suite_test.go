@@ -17,18 +17,18 @@ limitations under the License.
 package controllers
 
 import (
-	"path/filepath"
-	"testing"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"path/filepath"
+	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"testing"
 
 	k8sv1 "github.com/showcase-gig-platform/custom-metrics-generator/api/v1"
 	//+kubebuilder:scaffold:imports
@@ -78,3 +78,44 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })
+
+func Test_convertPromFormat(t *testing.T) {
+	tests := []struct {
+		name string
+		arg string
+		want string
+	}{
+		{
+			name: "replace 1",
+			arg: "aaaaa",
+			want: "aaaaa",
+		},
+		{
+			name: "replace 2",
+			arg: "00000",
+			want: "_0000",
+		},
+		{
+			name: "replace 3",
+			arg: "*****",
+			want: "_____",
+		},
+		{
+			name: "replace 4",
+			arg: "a*a*a",
+			want: "a_a_a",
+		},
+		{
+			name: "replace 5",
+			arg: "0*a0*a",
+			want: "__a0_a",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := convertPromFormat(test.arg); !reflect.DeepEqual(got, test.want) {
+				t.Errorf("convertPromFormat() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}

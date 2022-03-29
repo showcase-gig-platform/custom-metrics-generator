@@ -750,7 +750,6 @@ func Test_generateStatus(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Log(tt.args.now)
 			if got := generateStatus(tt.args.metrics, tt.args.now); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("generateStatus() = %v, want %v", got, tt.want)
 			}

@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"regexp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -156,7 +157,13 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	gauge := initGaugeVec(resource.Spec.MetricsName, resource.Spec.Labels)
+	metricsName := convertPromFormat(resource.Spec.MetricsName)
+	var labels map[string]string
+	for k, v := range resource.Spec.Labels {
+		key := convertPromFormat(k)
+		labels[key] = v
+	}
+	gauge := initGaugeVec(metricsName, labels)
 	if e := metrics.Registry.Register(gauge); e != nil {
 		return ctrl.Result{}, e
 	}
@@ -208,4 +215,13 @@ func (r *MetricsSourceReconciler) updateAllStatusAndMetrics(ctx context.Context)
 		collector.With(prometheus.Labels{}).Set(float64(status.CurrentValue))
 	}
 	// log.Log.Info("updateAllStatusAndMetrics end")
+}
+
+// prometheusのメトリクス名とlabel名に使用できる文字列に変換
+// [a-zA-Z_][a-zA-Z0-9_]*
+// 不正な文字種は _ に置換
+func convertPromFormat(str string) string {
+	first := regexp.MustCompile(`^[^a-zA-Z_]`)
+	other := regexp.MustCompile(`[^a-zA-Z0-9_]`)
+	return other.ReplaceAllString(first.ReplaceAllString(str, "_"), "_")
 }
