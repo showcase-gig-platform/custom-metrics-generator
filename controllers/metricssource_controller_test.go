@@ -11,7 +11,7 @@ import (
 
 var (
 	zero = 0
-	ten = 10
+	ten  = 10
 )
 
 func intPtr(val int) *int {
@@ -29,14 +29,14 @@ func Test_getLocationSpec(t *testing.T) {
 	}{
 		{
 			"empty spec",
-			args {
+			args{
 				v1.MetricsSourceSpec{},
 			},
 			time.UTC,
 		},
 		{
 			"with spec",
-			args {
+			args{
 				v1.MetricsSourceSpec{
 					Timezone: "Asia/Tokyo",
 				},
@@ -46,6 +46,7 @@ func Test_getLocationSpec(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			flag.CommandLine.Set("timezone", "UTC")
 			if got := getLocation(tt.args.spec.Timezone); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("getLocation() = %v, want %v", got, tt.want)
 			}
@@ -64,14 +65,14 @@ func Test_getLocationFlag(t *testing.T) {
 	}{
 		{
 			"empty spec",
-			args {
+			args{
 				v1.MetricsSourceSpec{},
 			},
 			jst,
 		},
 		{
 			"with spec",
-			args {
+			args{
 				v1.MetricsSourceSpec{
 					Timezone: "UTC",
 				},
@@ -100,14 +101,14 @@ func Test_getOffsetSpec(t *testing.T) {
 	}{
 		{
 			"empty spec",
-			args {
+			args{
 				v1.MetricsSourceSpec{},
 			},
 			0 * time.Second,
 		},
 		{
 			"with spec",
-			args {
+			args{
 				v1.MetricsSourceSpec{
 					OffsetSeconds: intPtr(10),
 				},
@@ -135,14 +136,14 @@ func Test_getOffsetFlag(t *testing.T) {
 	}{
 		{
 			"empty spec",
-			args {
+			args{
 				v1.MetricsSourceSpec{},
 			},
 			30 * time.Second,
 		},
 		{
 			"with spec",
-			args {
+			args{
 				v1.MetricsSourceSpec{
 					OffsetSeconds: intPtr(10),
 				},
@@ -151,7 +152,7 @@ func Test_getOffsetFlag(t *testing.T) {
 		},
 		{
 			"with spec zero",
-			args {
+			args{
 				v1.MetricsSourceSpec{
 					OffsetSeconds: intPtr(0),
 				},
@@ -214,8 +215,8 @@ func Test_offset(t *testing.T) {
 	type args struct {
 		flagOffset string
 		specOffset *int
-		metrics []v1.MetricsSourceSpecMetric
-		now     time.Time
+		metrics    []v1.MetricsSourceSpecMetric
+		now        time.Time
 	}
 	tests := []struct {
 		name string
@@ -391,8 +392,8 @@ func Test_timezone(t *testing.T) {
 	type args struct {
 		flagTimezone string
 		specTimezone string
-		metrics []v1.MetricsSourceSpecMetric
-		now     time.Time
+		metrics      []v1.MetricsSourceSpecMetric
+		now          time.Time
 	}
 	tests := []struct {
 		name string
@@ -480,6 +481,7 @@ func Test_timezone(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			flag.CommandLine.Set("timezone", "UTC")
 			if tt.args.flagTimezone != "" {
 				flag.CommandLine.Set("timezone", tt.args.flagTimezone)
 			}
