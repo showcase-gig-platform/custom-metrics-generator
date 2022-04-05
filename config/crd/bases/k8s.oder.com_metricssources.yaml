@@ -63,6 +63,10 @@ spec:
                 type: array
               metricsName:
                 type: string
+              offsetSeconds:
+                type: integer
+              timezone:
+                type: string
             required:
             - metrics
             - metricsName

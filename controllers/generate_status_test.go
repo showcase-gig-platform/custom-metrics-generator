@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"flag"
 	k8sv1 "github.com/showcase-gig-platform/custom-metrics-generator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"reflect"
@@ -65,7 +66,7 @@ func Test_generateStatus(t *testing.T) {
 						Value:    10,
 					},
 				},
-				now: time.Date(2022, 1, 5, 12, 30, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 12, 0, 0, 0, jst),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 10,
@@ -81,6 +82,54 @@ func Test_generateStatus(t *testing.T) {
 		},
 		{
 			name: "1 metric 3",
+			args: args{
+				metrics: []k8sv1.MetricsSourceSpecMetric{
+					{
+						Start:    "0 12 * * *",
+						Duration: metav1.Duration{Duration: duration("60m")},
+						Value:    10,
+					},
+				},
+				now: time.Date(2022, 1, 5, 12, 30, 0, 0, jst),
+			},
+			want: k8sv1.MetricsSourceStatus{
+				CurrentValue: 10,
+				Last: k8sv1.MetricsSourceStatusSchedule{
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, jst)},
+					Value:    10,
+				},
+				Next: k8sv1.MetricsSourceStatusSchedule{
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 0, 0, 0, jst)},
+					Value:    0,
+				},
+			},
+		},
+		{
+			name: "1 metric 4",
+			args: args{
+				metrics: []k8sv1.MetricsSourceSpecMetric{
+					{
+						Start:    "0 12 * * *",
+						Duration: metav1.Duration{Duration: duration("60m")},
+						Value:    10,
+					},
+				},
+				now: time.Date(2022, 1, 5, 13, 0, 0, 0, jst),
+			},
+			want: k8sv1.MetricsSourceStatus{
+				CurrentValue: 0,
+				Last: k8sv1.MetricsSourceStatusSchedule{
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 0, 0, 0, jst)},
+					Value:    0,
+				},
+				Next: k8sv1.MetricsSourceStatusSchedule{
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 6, 12, 0, 0, 0, jst)},
+					Value:    10,
+				},
+			},
+		},
+		{
+			name: "1 metric 5",
 			args: args{
 				metrics: []k8sv1.MetricsSourceSpecMetric{
 					{
@@ -408,7 +457,7 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 13, 0, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 12, 0, 0, 0, jst),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 10,
@@ -437,6 +486,64 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
+				now: time.Date(2022, 1, 5, 13, 0, 0, 0, jst),
+			},
+			want: k8sv1.MetricsSourceStatus{
+				CurrentValue: 10,
+				Last: k8sv1.MetricsSourceStatusSchedule{
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, jst)},
+					Value:    10,
+				},
+				Next: k8sv1.MetricsSourceStatusSchedule{
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 10, 0, 0, jst)},
+					Value:    5,
+				},
+			},
+		},
+		{
+			name: "2 metrics 3 - 4",
+			args: args{
+				metrics: []k8sv1.MetricsSourceSpecMetric{
+					{
+						Start:    "0 12 * * *",
+						Duration: metav1.Duration{Duration: duration("120m")},
+						Value:    10,
+					},
+					{
+						Start:    "10 13 * * *",
+						Duration: metav1.Duration{Duration: duration("30m")},
+						Value:    5,
+					},
+				},
+				now: time.Date(2022, 1, 5, 13, 10, 0, 0, jst),
+			},
+			want: k8sv1.MetricsSourceStatus{
+				CurrentValue: 5,
+				Last: k8sv1.MetricsSourceStatusSchedule{
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 10, 0, 0, jst)},
+					Value:    5,
+				},
+				Next: k8sv1.MetricsSourceStatusSchedule{
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 40, 0, 0, jst)},
+					Value:    10,
+				},
+			},
+		},
+		{
+			name: "2 metrics 3 - 5",
+			args: args{
+				metrics: []k8sv1.MetricsSourceSpecMetric{
+					{
+						Start:    "0 12 * * *",
+						Duration: metav1.Duration{Duration: duration("120m")},
+						Value:    10,
+					},
+					{
+						Start:    "10 13 * * *",
+						Duration: metav1.Duration{Duration: duration("30m")},
+						Value:    5,
+					},
+				},
 				now: time.Date(2022, 1, 5, 13, 30, 0, 0, jst),
 			},
 			want: k8sv1.MetricsSourceStatus{
@@ -452,7 +559,36 @@ func Test_generateStatus(t *testing.T) {
 			},
 		},
 		{
-			name: "2 metrics 3 - 4",
+			name: "2 metrics 3 - 6",
+			args: args{
+				metrics: []k8sv1.MetricsSourceSpecMetric{
+					{
+						Start:    "0 12 * * *",
+						Duration: metav1.Duration{Duration: duration("120m")},
+						Value:    10,
+					},
+					{
+						Start:    "10 13 * * *",
+						Duration: metav1.Duration{Duration: duration("30m")},
+						Value:    5,
+					},
+				},
+				now: time.Date(2022, 1, 5, 13, 40, 0, 0, jst),
+			},
+			want: k8sv1.MetricsSourceStatus{
+				CurrentValue: 10,
+				Last: k8sv1.MetricsSourceStatusSchedule{
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 40, 0, 0, jst)},
+					Value:    10,
+				},
+				Next: k8sv1.MetricsSourceStatusSchedule{
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 14, 0, 0, 0, jst)},
+					Value:    0,
+				},
+			},
+		},
+		{
+			name: "2 metrics 3 - 7",
 			args: args{
 				metrics: []k8sv1.MetricsSourceSpecMetric{
 					{
@@ -481,7 +617,36 @@ func Test_generateStatus(t *testing.T) {
 			},
 		},
 		{
-			name: "2 metrics 3 - 5",
+			name: "2 metrics 3 - 8",
+			args: args{
+				metrics: []k8sv1.MetricsSourceSpecMetric{
+					{
+						Start:    "0 12 * * *",
+						Duration: metav1.Duration{Duration: duration("120m")},
+						Value:    10,
+					},
+					{
+						Start:    "10 13 * * *",
+						Duration: metav1.Duration{Duration: duration("30m")},
+						Value:    5,
+					},
+				},
+				now: time.Date(2022, 1, 5, 14, 0, 0, 0, jst),
+			},
+			want: k8sv1.MetricsSourceStatus{
+				CurrentValue: 0,
+				Last: k8sv1.MetricsSourceStatusSchedule{
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 14, 0, 0, 0, jst)},
+					Value:    0,
+				},
+				Next: k8sv1.MetricsSourceStatusSchedule{
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 6, 12, 0, 0, 0, jst)},
+					Value:    10,
+				},
+			},
+		},
+		{
+			name: "2 metrics 3 - 9",
 			args: args{
 				metrics: []k8sv1.MetricsSourceSpecMetric{
 					{
@@ -750,6 +915,7 @@ func Test_generateStatus(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			flag.CommandLine.Set("timezone", "Asia/Tokyo")
 			if got := generateStatus(tt.args.metrics, tt.args.now); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("generateStatus() = %v, want %v", got, tt.want)
 			}

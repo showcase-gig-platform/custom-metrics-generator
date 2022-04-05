@@ -11,12 +11,12 @@ type metricTime struct {
 	time   time.Time
 }
 
-func generateStatus(metrics []k8sv1.MetricsSourceSpecMetric, now time.Time) k8sv1.MetricsSourceStatus {
-	currentMetric := getMetricSpecificTime(metrics, now)
+func generateStatus(metrics []k8sv1.MetricsSourceSpecMetric, refTime time.Time) k8sv1.MetricsSourceStatus {
+	currentMetric := getMetricSpecificTime(metrics, refTime)
 	// 該当するmetricがなかった場合は空の構造体が返ってくる
-	prevEventTime := prevValidSchedule(metrics, currentMetric, now)
-	nextEventTime := nextSchedule(metrics, currentMetric, now)
-	next := getMetricSpecificTime(metrics, nextEventTime.Add(1*time.Second))
+	prevEventTime := prevValidSchedule(metrics, currentMetric, refTime)
+	nextEventTime := nextSchedule(metrics, currentMetric, refTime)
+	nextMetric := getMetricSpecificTime(metrics, nextEventTime)
 
 	return k8sv1.MetricsSourceStatus{
 		CurrentValue: currentMetric.Value,
@@ -26,34 +26,36 @@ func generateStatus(metrics []k8sv1.MetricsSourceSpecMetric, now time.Time) k8sv
 		},
 		Next: k8sv1.MetricsSourceStatusSchedule{
 			Schedule: metav1.Time{Time: nextEventTime},
-			Value:    next.Value,
+			Value:    nextMetric.Value,
 		},
 	}
 }
 
-// nowになりきって今の値を
+// nowの時点で参照するmetricを選ぶ
+// 有効なものが複数ある場合、開始時刻がより近いもの
 func getMetricSpecificTime(metrics []k8sv1.MetricsSourceSpecMetric, now time.Time) k8sv1.MetricsSourceSpecMetric {
 	var current metricTime
 	for _, m := range metrics {
 		schedule, _ := parse(m.Start)
-		s := schedule.Prev(now)
-		e := s.Add(m.Duration.Duration)
-		if e.Before(now) {
-			// log.Log.Info("out of range")
+		start := schedule.Prev(now)
+		end := start.Add(m.Duration.Duration)
+		if end.Before(now) || end == now {
+			// 前回のスケジュールがされてからdurationが既に経過している = メトリクスを出す時間範囲にないので無視
+			// イコールを含めるのはスケジュール開始時と動作を統一させるため（ただしns単位の話なので実質テストの対応）
 			continue
 		}
-		if s.After(current.time) {
-			// log.Log.Info("after")
+		if start.After(current.time) {
+			// 現在のものより近いので採用
 			current.metric = m
-			current.time = s
-		} else {
-			// log.Log.Info("before")
+			current.time = start
 		}
 	}
 	return current.metric
 }
 
-// baseScheduleより後にscheduleがあったmetricsのうち、一番近いendを出す
+// 最後に起きたイベントの時刻を出す
+// 現時刻で有効なmetricがない場合（baseMetricsが空の場合）、すべてのmetricsから最後のイベントが起きた時刻
+// そうでない場合、baseMetricsの開始時刻または。それより後に開始・終了の両方があったmetricの中で最後のイベントが起きた時刻
 func prevValidSchedule(metrics []k8sv1.MetricsSourceSpecMetric, baseMetric k8sv1.MetricsSourceSpecMetric, now time.Time) time.Time {
 	var nearly time.Time
 	baseTime := time.Time{}
@@ -75,6 +77,9 @@ func prevValidSchedule(metrics []k8sv1.MetricsSourceSpecMetric, baseMetric k8sv1
 	return nearly
 }
 
+// 次回のイベント予定時刻を出す
+// 現時刻で有効なmetricがない場合（baseMetricsが空の場合）、すべてのmetricsの開始時刻のうち一番近いもの
+// そうでない場合、baseMetricsの終了時刻または、それより前に開始があるmetricsの中で最初にイベントが起きる時刻
 func nextSchedule(metrics []k8sv1.MetricsSourceSpecMetric, baseMetric k8sv1.MetricsSourceSpecMetric, now time.Time) time.Time {
 	var baseTime time.Time
 	var nearly time.Time

@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"flag"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -43,6 +44,20 @@ type MetricsSourceReconciler struct {
 
 var collectors = map[string]*prometheus.GaugeVec{}
 
+var (
+	interval int
+	offset   int
+	timezone string
+	prefix   string
+)
+
+func init() {
+	flag.IntVar(&interval, "interval-seconds", 60, "interval seconds to fetch metrics")
+	flag.IntVar(&offset, "offset-seconds", 0, "offset seconds to generate metrics")
+	flag.StringVar(&timezone, "timezone", "UTC", "set timezone")
+	flag.StringVar(&prefix, "metrics-prefix", "", "set prefix for metrics name")
+}
+
 func initGaugeVec(name string, labels map[string]string) *prometheus.GaugeVec {
 	return prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -55,7 +70,7 @@ func initGaugeVec(name string, labels map[string]string) *prometheus.GaugeVec {
 }
 
 func parse(cs string) (cron.Schedule, error) {
-	p := cron.NewParser(cron.SecondOptional | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
+	p := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	if c, e := p.Parse(cs); e != nil {
 		return nil, e
 	} else {
@@ -89,15 +104,12 @@ func resumeNamespacedName(namespacednamestring string) (types.NamespacedName, er
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log.Log.Info("triggered reconcile", "request", req)
+
 	_ = log.FromContext(ctx)
 
 	key := req.String()
 
-	// log.Log.Info("reconcile")
-
-	// log.Log.Info("--------------------")
-	// log.Log.Info(req.String())
-	//log.Log.Info("string", "r", r)
 	var resource k8sv1.MetricsSource
 	deleted := false
 	if e := r.Get(ctx, req.NamespacedName, &resource); e != nil {
@@ -108,16 +120,6 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			// それ以外のエラー
 		}
 	}
-
-	// ログを出してるだけ
-	/*
-		if !deleted {
-			log.Log.Info(resource.Spec.MetricsName)
-		}
-		for k, v := range resource.Spec.Labels {
-			log.Log.Info("labels: ", k, v)
-		}
-	*/
 
 	// cron形式が正しいかチェック
 	// 他のも入れてvalidateで切り出しても
@@ -135,8 +137,7 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}
 
-	now := time.Now()
-	status := generateStatus(resource.Spec.Metrics, now)
+	status := generateStatus(resource.Spec.Metrics, time.Now())
 	resource.Status = status
 	// log.Log.Info("resource", "status", fmt.Sprintf("%#v\n", resource.Status))
 	r.Status().Update(ctx, &resource)
@@ -157,8 +158,8 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	metricsName := convertPromFormat(resource.Spec.MetricsName)
-	var labels map[string]string
+	metricsName := convertPromFormat(prefix + resource.Spec.MetricsName)
+	var labels = map[string]string{}
 	for k, v := range resource.Spec.Labels {
 		key := convertPromFormat(k)
 		labels[key] = v
@@ -171,20 +172,18 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// 定期更新やunregisterする時のためにグローバルで持っておく
 	collectors[key] = gauge
 
-	// log.Log.Info("--------------------")
-
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MetricsSourceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
-	// log.Log.Info("setupwithmanager")
+	log.Log.Info("setupwithmanager")
 
-	// TODO: sleepのフラグ・エラーハンドリングとか
+	// TODO: エラーハンドリング
 	go func() {
 		for {
 			r.updateAllStatusAndMetrics(ctx)
-			time.Sleep(10 * time.Second)
+			time.Sleep(time.Duration(interval) * time.Second)
 		}
 	}()
 
@@ -194,7 +193,7 @@ func (r *MetricsSourceReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 }
 
 func (r *MetricsSourceReconciler) updateAllStatusAndMetrics(ctx context.Context) {
-	// log.Log.Info("updateAllStatusAndMetrics start")
+	log.Log.Info("periodic update start")
 
 	for key, collector := range collectors {
 		nn, err := resumeNamespacedName(key)
@@ -207,8 +206,12 @@ func (r *MetricsSourceReconciler) updateAllStatusAndMetrics(ctx context.Context)
 		if e := r.Get(ctx, nn, &resource); e != nil {
 			// それ以外のエラー
 		}
-		now := time.Now()
-		status := generateStatus(resource.Spec.Metrics, now)
+
+		o := getOffset(resource.Spec.OffsetSeconds)
+		l := getLocation(resource.Spec.Timezone)
+		refTime := time.Now().In(l).Add(o)
+		status := generateStatus(resource.Spec.Metrics, refTime)
+		// log.Log.Info("diff", "old", resource.Status, "new", status)
 		resource.Status = status
 		r.Status().Update(ctx, &resource)
 
@@ -224,4 +227,23 @@ func convertPromFormat(str string) string {
 	first := regexp.MustCompile(`^[^a-zA-Z_]`)
 	other := regexp.MustCompile(`[^a-zA-Z0-9_]`)
 	return other.ReplaceAllString(first.ReplaceAllString(str, "_"), "_")
+}
+
+func getLocation(tz string) *time.Location {
+	loc, err := time.LoadLocation(timezone)
+	if tz != "" {
+		loc, err = time.LoadLocation(tz)
+	}
+	if err != nil {
+		log.Log.Error(err, "failed to load timezone, use UTC.")
+		loc = time.FixedZone("UTC", 0)
+	}
+	return loc
+}
+
+func getOffset(o *int) time.Duration {
+	if o != nil {
+		return time.Duration(*o) * time.Second
+	}
+	return time.Duration(offset) * time.Second
 }

@@ -7,6 +7,6 @@ spec:
   labels: # メトリクスに付与するラベル
     foo: bar
   metrics:
-    - start: "*/3 * * * *"
-      duration: 2m
+    - start: "0 15 * * *"
+      duration: 1h
       value: 5

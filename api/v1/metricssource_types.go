@@ -31,6 +31,12 @@ type MetricsSourceSpec struct {
 	MetricsName string `json:"metricsName"`
 
 	// +optional
+	Timezone string `json:"timezone"`
+
+	// +optional
+	OffsetSeconds *int `json:"offsetSeconds"`
+
+	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 
 	Metrics []MetricsSourceSpecMetric `json:"metrics"`
