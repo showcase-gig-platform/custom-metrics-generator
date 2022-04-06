@@ -3,6 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.8.0
+  creationTimestamp: null
   name: metricssources.k8s.oder.com
 spec:
   group: k8s.oder.com
@@ -60,6 +61,10 @@ spec:
                   type: object
                 type: array
               metricsName:
+                type: string
+              offsetSeconds:
+                type: integer
+              timezone:
                 type: string
             required:
             - metrics
