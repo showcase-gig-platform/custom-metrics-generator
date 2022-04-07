@@ -1,0 +1,15 @@
+apiVersion: k8s.oder.com/v1
+kind: MetricsSource
+metadata:
+  name: sample-metrics-source
+spec:
+  metricsName: sample_metrics
+  labels:
+    foo: bar
+  metrics:
+    - start: "0 * * * *"
+      duration: 10m
+      value: 10
+    - start: "20 * * * *"
+      duration: 20m
+      value: 5
