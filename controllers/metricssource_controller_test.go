@@ -5,17 +5,33 @@ import (
 	v1 "github.com/showcase-gig-platform/custom-metrics-generator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 )
 
-var (
-	zero = 0
-	ten  = 10
-)
-
 func intPtr(val int) *int {
 	return &val
+}
+
+func flushFlag() {
+	flag.CommandLine.Set("interval-seconds", strconv.Itoa(flagIntervalDefault))
+	flag.CommandLine.Set("offset-seconds", strconv.Itoa(flagOffsetDefault))
+	flag.CommandLine.Set("timezone", flagTimezoneDefault)
+	flag.CommandLine.Set("metrics-prefix", flagPrefixDefault)
+}
+
+var jst = func() *time.Location {
+	jst, _ := time.LoadLocation("Asia/Tokyo")
+	return jst
+}()
+
+func duration(s string) time.Duration {
+	var d time.Duration
+	if p, e := time.ParseDuration(s); e == nil {
+		d = p
+	}
+	return d
 }
 
 func Test_getLocationSpec(t *testing.T) {
@@ -46,7 +62,7 @@ func Test_getLocationSpec(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			flag.CommandLine.Set("timezone", "UTC")
+			flushFlag()
 			if got := getLocation(tt.args.spec.Timezone); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("getLocation() = %v, want %v", got, tt.want)
 			}
@@ -82,6 +98,7 @@ func Test_getLocationFlag(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			flushFlag()
 			flag.CommandLine.Set("timezone", "Asia/Tokyo")
 			if got := getLocation(tt.args.spec.Timezone); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("getLocation() = %v, want %v", got, tt.want)
@@ -118,6 +135,7 @@ func Test_getOffsetSpec(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			flushFlag()
 			if got := getOffset(tt.args.spec.OffsetSeconds); got != tt.want {
 				t.Errorf("getOffset() = %v, want %v", got, tt.want)
 			}
@@ -162,6 +180,7 @@ func Test_getOffsetFlag(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			flushFlag()
 			flag.CommandLine.Set("offset-seconds", "30")
 			if got := getOffset(tt.args.spec.OffsetSeconds); got != tt.want {
 				t.Errorf("getOffset() = %v, want %v", got, tt.want)
@@ -204,6 +223,7 @@ func Test_convertPromFormat(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			flushFlag()
 			if got := convertPromFormat(test.arg); !reflect.DeepEqual(got, test.want) {
 				t.Errorf("convertPromFormat() = %v, want %v", got, test.want)
 			}
@@ -377,6 +397,7 @@ func Test_offset(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			flushFlag()
 			if tt.args.flagOffset != "" {
 				flag.CommandLine.Set("offset-seconds", tt.args.flagOffset)
 			}
@@ -481,7 +502,7 @@ func Test_timezone(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			flag.CommandLine.Set("timezone", "UTC")
+			flushFlag()
 			if tt.args.flagTimezone != "" {
 				flag.CommandLine.Set("timezone", tt.args.flagTimezone)
 			}

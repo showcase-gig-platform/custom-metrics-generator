@@ -1,26 +1,12 @@
 package controllers
 
 import (
-	"flag"
 	k8sv1 "github.com/showcase-gig-platform/custom-metrics-generator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"reflect"
 	"testing"
 	"time"
 )
-
-var jst = func() *time.Location {
-	jst, _ := time.LoadLocation("Asia/Tokyo")
-	return jst
-}()
-
-func duration(s string) time.Duration {
-	var d time.Duration
-	if p, e := time.ParseDuration(s); e == nil {
-		d = p
-	}
-	return d
-}
 
 func Test_generateStatus(t *testing.T) {
 	type args struct {
@@ -42,16 +28,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    10,
 					},
 				},
-				now: time.Date(2022, 1, 5, 11, 30, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 11, 30, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 0,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 4, 13, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 4, 13, 0, 0, 0, time.UTC)},
 					Value:    0,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 			},
@@ -66,16 +52,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    10,
 					},
 				},
-				now: time.Date(2022, 1, 5, 12, 0, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 12, 0, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 10,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 0, 0, 0, time.UTC)},
 					Value:    0,
 				},
 			},
@@ -90,16 +76,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    10,
 					},
 				},
-				now: time.Date(2022, 1, 5, 12, 30, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 12, 30, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 10,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 0, 0, 0, time.UTC)},
 					Value:    0,
 				},
 			},
@@ -114,16 +100,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    10,
 					},
 				},
-				now: time.Date(2022, 1, 5, 13, 0, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 13, 0, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 0,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 0, 0, 0, time.UTC)},
 					Value:    0,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 6, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 6, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 			},
@@ -138,16 +124,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    10,
 					},
 				},
-				now: time.Date(2022, 1, 5, 13, 30, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 13, 30, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 0,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 0, 0, 0, time.UTC)},
 					Value:    0,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 6, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 6, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 			},
@@ -167,16 +153,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 11, 0, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 11, 0, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 0,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 4, 13, 30, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 4, 13, 30, 0, 0, time.UTC)},
 					Value:    0,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 			},
@@ -196,16 +182,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 12, 30, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 12, 30, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 10,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 40, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 40, 0, 0, time.UTC)},
 					Value:    0,
 				},
 			},
@@ -225,16 +211,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 12, 50, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 12, 50, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 0,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 40, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 40, 0, 0, time.UTC)},
 					Value:    0,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 10, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 10, 0, 0, time.UTC)},
 					Value:    5,
 				},
 			},
@@ -254,16 +240,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 13, 20, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 13, 20, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 5,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 10, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 10, 0, 0, time.UTC)},
 					Value:    5,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 30, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 30, 0, 0, time.UTC)},
 					Value:    0,
 				},
 			},
@@ -283,16 +269,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 14, 0, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 14, 0, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 0,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 30, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 30, 0, 0, time.UTC)},
 					Value:    0,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 6, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 6, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 			},
@@ -312,16 +298,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 11, 0, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 11, 0, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 0,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 4, 15, 10, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 4, 15, 10, 0, 0, time.UTC)},
 					Value:    0,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 			},
@@ -341,16 +327,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 12, 30, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 12, 30, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 10,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 10, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 10, 0, 0, time.UTC)},
 					Value:    5,
 				},
 			},
@@ -370,16 +356,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 14, 30, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 14, 30, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 5,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 10, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 10, 0, 0, time.UTC)},
 					Value:    5,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 15, 10, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 15, 10, 0, 0, time.UTC)},
 					Value:    0,
 				},
 			},
@@ -399,16 +385,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 15, 30, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 15, 30, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 0,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 15, 10, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 15, 10, 0, 0, time.UTC)},
 					Value:    0,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 6, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 6, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 			},
@@ -428,16 +414,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 11, 0, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 11, 0, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 0,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 4, 14, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 4, 14, 0, 0, 0, time.UTC)},
 					Value:    0,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 			},
@@ -457,16 +443,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 12, 0, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 12, 0, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 10,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 10, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 10, 0, 0, time.UTC)},
 					Value:    5,
 				},
 			},
@@ -486,16 +472,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 13, 0, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 13, 0, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 10,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 10, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 10, 0, 0, time.UTC)},
 					Value:    5,
 				},
 			},
@@ -515,16 +501,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 13, 10, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 13, 10, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 5,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 10, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 10, 0, 0, time.UTC)},
 					Value:    5,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 40, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 40, 0, 0, time.UTC)},
 					Value:    10,
 				},
 			},
@@ -544,16 +530,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 13, 30, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 13, 30, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 5,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 10, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 10, 0, 0, time.UTC)},
 					Value:    5,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 40, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 40, 0, 0, time.UTC)},
 					Value:    10,
 				},
 			},
@@ -573,16 +559,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 13, 40, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 13, 40, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 10,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 40, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 40, 0, 0, time.UTC)},
 					Value:    10,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 14, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 14, 0, 0, 0, time.UTC)},
 					Value:    0,
 				},
 			},
@@ -602,16 +588,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 13, 50, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 13, 50, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 10,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 40, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 40, 0, 0, time.UTC)},
 					Value:    10,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 14, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 14, 0, 0, 0, time.UTC)},
 					Value:    0,
 				},
 			},
@@ -631,16 +617,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 14, 0, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 14, 0, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 0,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 14, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 14, 0, 0, 0, time.UTC)},
 					Value:    0,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 6, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 6, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 			},
@@ -660,16 +646,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    5,
 					},
 				},
-				now: time.Date(2022, 1, 5, 15, 0, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 15, 0, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 0,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 14, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 14, 0, 0, 0, time.UTC)},
 					Value:    0,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 6, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 6, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 			},
@@ -694,16 +680,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    20,
 					},
 				},
-				now: time.Date(2022, 1, 5, 11, 0, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 11, 0, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 0,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 4, 15, 20, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 4, 15, 20, 0, 0, time.UTC)},
 					Value:    0,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 			},
@@ -728,16 +714,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    20,
 					},
 				},
-				now: time.Date(2022, 1, 5, 13, 0, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 13, 0, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 10,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 20, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 20, 0, 0, time.UTC)},
 					Value:    5,
 				},
 			},
@@ -762,16 +748,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    20,
 					},
 				},
-				now: time.Date(2022, 1, 5, 13, 30, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 13, 30, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 5,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 20, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 20, 0, 0, time.UTC)},
 					Value:    5,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 40, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 40, 0, 0, time.UTC)},
 					Value:    20,
 				},
 			},
@@ -796,16 +782,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    20,
 					},
 				},
-				now: time.Date(2022, 1, 5, 13, 50, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 13, 50, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 20,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 40, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 40, 0, 0, time.UTC)},
 					Value:    20,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 14, 40, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 14, 40, 0, 0, time.UTC)},
 					Value:    5,
 				},
 			},
@@ -830,16 +816,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    20,
 					},
 				},
-				now: time.Date(2022, 1, 5, 14, 10, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 14, 10, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 20,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 40, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 13, 40, 0, 0, time.UTC)},
 					Value:    20,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 14, 40, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 14, 40, 0, 0, time.UTC)},
 					Value:    5,
 				},
 			},
@@ -864,16 +850,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    20,
 					},
 				},
-				now: time.Date(2022, 1, 5, 14, 50, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 14, 50, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 5,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 14, 40, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 14, 40, 0, 0, time.UTC)},
 					Value:    5,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 15, 20, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 15, 20, 0, 0, time.UTC)},
 					Value:    0,
 				},
 			},
@@ -898,16 +884,16 @@ func Test_generateStatus(t *testing.T) {
 						Value:    20,
 					},
 				},
-				now: time.Date(2022, 1, 5, 15, 30, 0, 0, jst),
+				now: time.Date(2022, 1, 5, 15, 30, 0, 0, time.UTC),
 			},
 			want: k8sv1.MetricsSourceStatus{
 				CurrentValue: 0,
 				Last: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 15, 20, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 5, 15, 20, 0, 0, time.UTC)},
 					Value:    0,
 				},
 				Next: k8sv1.MetricsSourceStatusSchedule{
-					Schedule: metav1.Time{Time: time.Date(2022, 1, 6, 12, 0, 0, 0, jst)},
+					Schedule: metav1.Time{Time: time.Date(2022, 1, 6, 12, 0, 0, 0, time.UTC)},
 					Value:    10,
 				},
 			},
@@ -915,7 +901,6 @@ func Test_generateStatus(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			flag.CommandLine.Set("timezone", "Asia/Tokyo")
 			if got := generateStatus(tt.args.metrics, tt.args.now); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("generateStatus() = %v, want %v", got, tt.want)
 			}

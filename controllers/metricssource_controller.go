@@ -45,17 +45,21 @@ type MetricsSourceReconciler struct {
 var collectors = map[string]*prometheus.GaugeVec{}
 
 var (
-	interval int
-	offset   int
-	timezone string
-	prefix   string
+	interval            int
+	offset              int
+	timezone            string
+	prefix              string
+	flagIntervalDefault = 60
+	flagOffsetDefault   = 0
+	flagTimezoneDefault = "UTC"
+	flagPrefixDefault   = ""
 )
 
 func init() {
-	flag.IntVar(&interval, "interval-seconds", 60, "interval seconds to fetch metrics")
-	flag.IntVar(&offset, "offset-seconds", 0, "offset seconds to generate metrics")
-	flag.StringVar(&timezone, "timezone", "UTC", "set timezone")
-	flag.StringVar(&prefix, "metrics-prefix", "", "set prefix for metrics name")
+	flag.IntVar(&interval, "interval-seconds", flagIntervalDefault, "interval seconds to fetch metrics")
+	flag.IntVar(&offset, "offset-seconds", flagOffsetDefault, "offset seconds to generate metrics")
+	flag.StringVar(&timezone, "timezone", flagTimezoneDefault, "set timezone")
+	flag.StringVar(&prefix, "metrics-prefix", flagPrefixDefault, "set prefix for metrics name")
 }
 
 func initGaugeVec(name string, labels map[string]string) *prometheus.GaugeVec {
