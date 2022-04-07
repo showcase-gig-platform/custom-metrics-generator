@@ -162,10 +162,10 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	metricsName := convertPromFormat(prefix + resource.Spec.MetricsName)
+	metricsName := convertPromFormatName(prefix + resource.Spec.MetricsName)
 	var labels = map[string]string{}
 	for k, v := range resource.Spec.Labels {
-		key := convertPromFormat(k)
+		key := convertPromFormatLabelKey(k)
 		labels[key] = v
 	}
 	gauge := initGaugeVec(metricsName, labels)
@@ -227,10 +227,20 @@ func (r *MetricsSourceReconciler) updateAllStatusAndMetrics(ctx context.Context)
 // prometheusのメトリクス名とlabel名に使用できる文字列に変換
 // [a-zA-Z_][a-zA-Z0-9_]*
 // 不正な文字種は _ に置換
-func convertPromFormat(str string) string {
+
+const replace = "_"
+
+func convertPromFormatName(str string) string {
+	first := regexp.MustCompile(`^[^a-zA-Z_:]`)
+	other := regexp.MustCompile(`[^a-zA-Z0-9_:]`)
+	return other.ReplaceAllString(first.ReplaceAllString(str, replace), replace)
+}
+
+func convertPromFormatLabelKey(str string) string {
 	first := regexp.MustCompile(`^[^a-zA-Z_]`)
 	other := regexp.MustCompile(`[^a-zA-Z0-9_]`)
-	return other.ReplaceAllString(first.ReplaceAllString(str, "_"), "_")
+	finish := regexp.MustCompile(`^_{2,}`)
+	return finish.ReplaceAllString(other.ReplaceAllString(first.ReplaceAllString(str, replace), replace), replace)
 }
 
 func getLocation(tz string) *time.Location {

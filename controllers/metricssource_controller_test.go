@@ -189,7 +189,7 @@ func Test_getOffsetFlag(t *testing.T) {
 	}
 }
 
-func Test_convertPromFormat(t *testing.T) {
+func Test_convertPromFormatName(t *testing.T) {
 	tests := []struct {
 		name string
 		arg  string
@@ -207,8 +207,8 @@ func Test_convertPromFormat(t *testing.T) {
 		},
 		{
 			name: "replace 3",
-			arg:  "*****",
-			want: "_____",
+			arg:  "*:*:*",
+			want: "_:_:_",
 		},
 		{
 			name: "replace 4",
@@ -224,7 +224,49 @@ func Test_convertPromFormat(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			flushFlag()
-			if got := convertPromFormat(test.arg); !reflect.DeepEqual(got, test.want) {
+			if got := convertPromFormatName(test.arg); !reflect.DeepEqual(got, test.want) {
+				t.Errorf("convertPromFormat() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func Test_convertPromFormatLabelKey(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  string
+		want string
+	}{
+		{
+			name: "replace 1",
+			arg:  "aaaaa",
+			want: "aaaaa",
+		},
+		{
+			name: "replace 2",
+			arg:  "00000",
+			want: "_0000",
+		},
+		{
+			name: "replace 3",
+			arg:  "*:*:*",
+			want: "_",
+		},
+		{
+			name: "replace 4",
+			arg:  "a*a*a",
+			want: "a_a_a",
+		},
+		{
+			name: "replace 5",
+			arg:  "0*a0*a",
+			want: "_a0_a",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			flushFlag()
+			if got := convertPromFormatLabelKey(test.arg); !reflect.DeepEqual(got, test.want) {
 				t.Errorf("convertPromFormat() = %v, want %v", got, test.want)
 			}
 		})
