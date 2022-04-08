@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"flag"
+	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -62,14 +63,14 @@ func init() {
 	flag.StringVar(&prefix, "metrics-prefix", flagPrefixDefault, "set prefix for metrics name")
 }
 
-func initGaugeVec(name string, labels map[string]string) *prometheus.GaugeVec {
+func initGaugeVec(name string, labelKeys []string, constLabels map[string]string) *prometheus.GaugeVec {
 	return prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name:        name,
 			Help:        "auto generateted metrics for " + name,
-			ConstLabels: labels,
+			ConstLabels: constLabels,
 		},
-		[]string{},
+		labelKeys,
 	)
 }
 
@@ -150,7 +151,7 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if old, ok := collectors[key]; ok {
 		if b := metrics.Registry.Unregister(old); b {
 			// log.Log.Info("metrics unregisted")
-			delete(collectors, resource.ObjectMeta.Name)
+			delete(collectors, key)
 		} else {
 			// log.Log.Info("metrics not exist")
 		}
@@ -163,16 +164,16 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	metricsName := convertPromFormatName(prefix + resource.Spec.MetricsName)
-	var labels = map[string]string{}
-	for k, v := range resource.Spec.Labels {
-		key := convertPromFormatLabelKey(k)
-		labels[key] = v
+	labels := formatAllLabels(resource.Spec.Labels)
+	var keys []string
+	for k, _ := range labels {
+		keys = append(keys, k)
 	}
-	gauge := initGaugeVec(metricsName, labels)
+	gauge := initGaugeVec(metricsName, keys, prometheus.Labels{"origin": key})
 	if e := metrics.Registry.Register(gauge); e != nil {
 		return ctrl.Result{}, e
 	}
-	gauge.With(prometheus.Labels{}).Set(float64(status.CurrentValue))
+	gauge.With(labels).Set(float64(status.CurrentValue))
 	// 定期更新やunregisterする時のためにグローバルで持っておく
 	collectors[key] = gauge
 
@@ -208,7 +209,9 @@ func (r *MetricsSourceReconciler) updateAllStatusAndMetrics(ctx context.Context)
 
 		var resource k8sv1.MetricsSource
 		if e := r.Get(ctx, nn, &resource); e != nil {
-			// それ以外のエラー
+			// これがよく出るようだとcollectorsの中身と登録済みresourceが何らかの原因でずれている可能性が
+			log.Log.Error(err, fmt.Sprintf("failed to get resource : %s", nn.String()))
+			continue
 		}
 
 		o := getOffset(resource.Spec.OffsetSeconds)
@@ -219,7 +222,8 @@ func (r *MetricsSourceReconciler) updateAllStatusAndMetrics(ctx context.Context)
 		resource.Status = status
 		r.Status().Update(ctx, &resource)
 
-		collector.With(prometheus.Labels{}).Set(float64(status.CurrentValue))
+		labels := formatAllLabels(resource.Spec.Labels)
+		collector.With(labels).Set(float64(status.CurrentValue))
 	}
 	// log.Log.Info("updateAllStatusAndMetrics end")
 }
@@ -241,6 +245,15 @@ func convertPromFormatLabelKey(str string) string {
 	other := regexp.MustCompile(`[^a-zA-Z0-9_]`)
 	finish := regexp.MustCompile(`^_{2,}`)
 	return finish.ReplaceAllString(other.ReplaceAllString(first.ReplaceAllString(str, replace), replace), replace)
+}
+
+func formatAllLabels(labels map[string]string) map[string]string {
+	var ret = map[string]string{}
+	for k, v := range labels {
+		key := convertPromFormatLabelKey(k)
+		ret[key] = v
+	}
+	return ret
 }
 
 func getLocation(tz string) *time.Location {
