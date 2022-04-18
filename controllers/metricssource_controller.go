@@ -21,7 +21,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"regexp"
@@ -43,6 +43,7 @@ type MetricsSourceReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+// 定期更新やunregisterする時のためにグローバルで持っておく
 var collectors = map[string]*prometheus.GaugeVec{}
 
 var (
@@ -86,7 +87,7 @@ func parse(cs string) (cron.Schedule, error) {
 func resumeNamespacedName(namespacednamestring string) (types.NamespacedName, error) {
 	split := strings.Split(namespacednamestring, "/")
 	if len(split) != 2 {
-		return types.NamespacedName{}, errors.NewBadRequest("cannot generate NamespacedName from string")
+		return types.NamespacedName{}, apierrors.NewBadRequest("cannot generate NamespacedName from string")
 	}
 
 	return types.NamespacedName{
@@ -109,6 +110,10 @@ func resumeNamespacedName(namespacednamestring string) (types.NamespacedName, er
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	// ctrl.Requestにはリソースのnamespaceとnameが入ってるだけで
+	// そのリソースに対するアクションがcreate/edit/deleteどれなのかの情報はない
+	// deleteはリソースをGetしてnotFoundなら削除されたと判断する
+
 	log.Log.Info("triggered reconcile", "request", req)
 
 	_ = log.FromContext(ctx)
@@ -116,52 +121,29 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	key := req.String()
 
 	var resource k8sv1.MetricsSource
-	deleted := false
 	if e := r.Get(ctx, req.NamespacedName, &resource); e != nil {
-		if errors.IsNotFound(e) {
+		if apierrors.IsNotFound(e) {
 			// リソースが削除された場合の処理
-			deleted = true
+			deleteMetrics(key)
+			return ctrl.Result{}, nil
 		} else {
 			// それ以外のエラー
+			return ctrl.Result{}, fmt.Errorf("reconcile - failed to get resource : %w", e)
 		}
 	}
 
 	// cron形式が正しいかチェック
-	// 他のも入れてvalidateで切り出しても
-	// log.Log.Info("result", "resources", resources)
+	// 他のチェックも入れて総合的なvalidateで切り出しても
 	for _, item := range resource.Spec.Metrics {
-		// log.Log.Info(item.Duration.String())
 		cs := item.Start
-		// log.Log.Info(cs)
-		_, e := parse(cs)
-		if e != nil {
-			// log.Log.Error(e, "cron parse error")
-			return ctrl.Result{}, e
-		} else {
-			// log.Log.Info(c.Prev(time.Now()).String())
+		if _, e := parse(cs); e != nil {
+			return ctrl.Result{}, fmt.Errorf("reconcile - failed to parse cron : %w", e)
 		}
 	}
 
 	status := generateStatus(resource.Spec.Metrics, time.Now())
 	resource.Status = status
-	// log.Log.Info("resource", "status", fmt.Sprintf("%#v\n", resource.Status))
 	r.Status().Update(ctx, &resource)
-
-	// リクエストのresourceのメトリクスをレジストリからいったん削除
-	if old, ok := collectors[key]; ok {
-		if b := metrics.Registry.Unregister(old); b {
-			// log.Log.Info("metrics unregisted")
-			delete(collectors, key)
-		} else {
-			// log.Log.Info("metrics not exist")
-		}
-	}
-
-	if deleted {
-		// log.Log.Info("finish delete")
-		// log.Log.Info("--------------------")
-		return ctrl.Result{}, nil
-	}
 
 	metricsName := convertPromFormatName(prefix + resource.Spec.MetricsName)
 	labels := formatAllLabels(resource.Spec.Labels)
@@ -170,11 +152,14 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		keys = append(keys, k)
 	}
 	gauge := initGaugeVec(metricsName, keys, prometheus.Labels{"origin": key})
+	// レジストリからいったん削除してから再登録する
+	// metricsSource変更時にメトリクス名やlabelのkeyに変更があった場合の古いメトリクスが残るのを防ぎたいが
+	// 差分あるなしをちゃんとハンドリングしようとすると結構面倒だったので一律で削除してから登録としておく
+	deleteMetrics(key)
 	if e := metrics.Registry.Register(gauge); e != nil {
-		return ctrl.Result{}, e
+		return ctrl.Result{}, fmt.Errorf("reconcile - failed to register metrics : %w", e)
 	}
 	gauge.With(labels).Set(float64(status.CurrentValue))
-	// 定期更新やunregisterする時のためにグローバルで持っておく
 	collectors[key] = gauge
 
 	return ctrl.Result{}, nil
@@ -187,6 +172,15 @@ func (r *MetricsSourceReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	// TODO: エラーハンドリング
 	go func() {
 		for {
+			log.Log.Info("periodic update start")
+
+			ls, _ := metrics.Registry.Gather()
+			for _, l := range ls {
+				if *l.Name == "sample_metrics" {
+					log.Log.Info("debug", "gather", l)
+				}
+			}
+
 			r.updateAllStatusAndMetrics(ctx)
 			time.Sleep(time.Duration(interval) * time.Second)
 		}
@@ -198,8 +192,6 @@ func (r *MetricsSourceReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 }
 
 func (r *MetricsSourceReconciler) updateAllStatusAndMetrics(ctx context.Context) {
-	log.Log.Info("periodic update start")
-
 	for key, collector := range collectors {
 		nn, err := resumeNamespacedName(key)
 		if err != nil {
@@ -218,14 +210,12 @@ func (r *MetricsSourceReconciler) updateAllStatusAndMetrics(ctx context.Context)
 		l := getLocation(resource.Spec.Timezone)
 		refTime := time.Now().In(l).Add(o)
 		status := generateStatus(resource.Spec.Metrics, refTime)
-		// log.Log.Info("diff", "old", resource.Status, "new", status)
 		resource.Status = status
 		r.Status().Update(ctx, &resource)
 
 		labels := formatAllLabels(resource.Spec.Labels)
 		collector.With(labels).Set(float64(status.CurrentValue))
 	}
-	// log.Log.Info("updateAllStatusAndMetrics end")
 }
 
 // prometheusのメトリクス名とlabel名に使用できる文字列に変換
@@ -273,4 +263,16 @@ func getOffset(o *int) time.Duration {
 		return time.Duration(*o) * time.Second
 	}
 	return time.Duration(offset) * time.Second
+}
+
+func deleteMetrics(key string) {
+	if old, ok := collectors[key]; ok {
+		if b := metrics.Registry.Unregister(old); b {
+			// collectorsからdeleteするのはUnregisterの成否を問わないほうがいいかも？
+			// 何かしらの理由でレジストリとcollectorsに差分が発生する可能性と、Unregisterが失敗する原因パターン次第
+			delete(collectors, key)
+		} else {
+			log.Log.Info("deleteMetrics: could not remove target metrics")
+		}
+	}
 }
