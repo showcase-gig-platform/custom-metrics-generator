@@ -20,7 +20,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/showcase-gig-platform/cron/v3"
+	k8sv1 "github.com/showcase-gig-platform/custom-metrics-generator/api/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,13 +29,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"strings"
 	"time"
-
-	k8sv1 "github.com/showcase-gig-platform/custom-metrics-generator/api/v1"
-
-	"github.com/showcase-gig-platform/cron/v3"
 )
 
 // MetricsSourceReconciler reconciles a MetricsSource object
@@ -43,8 +39,7 @@ type MetricsSourceReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// 定期更新やunregisterする時のためにグローバルで持っておく
-var collectors = map[string]*prometheus.GaugeVec{}
+var metricsStorage = NewStorage()
 
 var (
 	interval            int
@@ -62,17 +57,6 @@ func init() {
 	flag.IntVar(&offset, "offset-seconds", flagOffsetDefault, "offset seconds to generate metrics")
 	flag.StringVar(&timezone, "timezone", flagTimezoneDefault, "set timezone")
 	flag.StringVar(&prefix, "metrics-prefix", flagPrefixDefault, "set prefix for metrics name")
-}
-
-func initGaugeVec(name string, labelKeys []string, constLabels map[string]string) *prometheus.GaugeVec {
-	return prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name:        name,
-			Help:        "auto generateted metrics for " + name,
-			ConstLabels: constLabels,
-		},
-		labelKeys,
-	)
 }
 
 func parse(cs string) (cron.Schedule, error) {
@@ -114,7 +98,7 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// そのリソースに対するアクションがcreate/edit/deleteどれなのかの情報はない
 	// deleteはリソースをGetしてnotFoundなら削除されたと判断する
 
-	log.Log.Info("triggered reconcile", "request", req)
+	// log.Log.Info("triggered reconcile", "request", req)
 
 	_ = log.FromContext(ctx)
 
@@ -124,7 +108,7 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if e := r.Get(ctx, req.NamespacedName, &resource); e != nil {
 		if apierrors.IsNotFound(e) {
 			// リソースが削除された場合の処理
-			deleteMetrics(key)
+			metricsStorage.delete(key)
 			return ctrl.Result{}, nil
 		} else {
 			// それ以外のエラー
@@ -147,39 +131,23 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	metricsName := convertPromFormatName(prefix + resource.Spec.MetricsName)
 	labels := formatAllLabels(resource.Spec.Labels)
-	var keys []string
-	for k, _ := range labels {
-		keys = append(keys, k)
-	}
-	gauge := initGaugeVec(metricsName, keys, prometheus.Labels{"origin": key})
-	// レジストリからいったん削除してから再登録する
-	// metricsSource変更時にメトリクス名やlabelのkeyに変更があった場合の古いメトリクスが残るのを防ぎたいが
-	// 差分あるなしをちゃんとハンドリングしようとすると結構面倒だったので一律で削除してから登録としておく
-	deleteMetrics(key)
-	if e := metrics.Registry.Register(gauge); e != nil {
-		return ctrl.Result{}, fmt.Errorf("reconcile - failed to register metrics : %w", e)
-	}
-	gauge.With(labels).Set(float64(status.CurrentValue))
-	collectors[key] = gauge
+	labels["origin"] = key // ユニーク性を担保するためresourceの名前のlabelを追加する
+	metricsStorage.write(key, metric{metricsName, labels, status.CurrentValue})
 
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MetricsSourceReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
-	log.Log.Info("setupwithmanager")
+	// log.Log.Info("setup with manager")
 
 	// TODO: エラーハンドリング
+	// このへんのgoroutineが落ちたらmainも終了するようにしたい
+	go metricsStorage.serve()
+
 	go func() {
 		for {
-			log.Log.Info("periodic update start")
-
-			ls, _ := metrics.Registry.Gather()
-			for _, l := range ls {
-				if *l.Name == "sample_metrics" {
-					log.Log.Info("debug", "gather", l)
-				}
-			}
+			// log.Log.Info("periodic update start")
 
 			r.updateAllStatusAndMetrics(ctx)
 			time.Sleep(time.Duration(interval) * time.Second)
@@ -192,7 +160,7 @@ func (r *MetricsSourceReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 }
 
 func (r *MetricsSourceReconciler) updateAllStatusAndMetrics(ctx context.Context) {
-	for key, collector := range collectors {
+	for key, _ := range metricsStorage.metrics {
 		nn, err := resumeNamespacedName(key)
 		if err != nil {
 			log.Log.Error(err, "failed to resume namespaced-name.")
@@ -213,8 +181,7 @@ func (r *MetricsSourceReconciler) updateAllStatusAndMetrics(ctx context.Context)
 		resource.Status = status
 		r.Status().Update(ctx, &resource)
 
-		labels := formatAllLabels(resource.Spec.Labels)
-		collector.With(labels).Set(float64(status.CurrentValue))
+		metricsStorage.updateValue(key, status.CurrentValue)
 	}
 }
 
@@ -263,16 +230,4 @@ func getOffset(o *int) time.Duration {
 		return time.Duration(*o) * time.Second
 	}
 	return time.Duration(offset) * time.Second
-}
-
-func deleteMetrics(key string) {
-	if old, ok := collectors[key]; ok {
-		if b := metrics.Registry.Unregister(old); b {
-			// collectorsからdeleteするのはUnregisterの成否を問わないほうがいいかも？
-			// 何かしらの理由でレジストリとcollectorsに差分が発生する可能性と、Unregisterが失敗する原因パターン次第
-			delete(collectors, key)
-		} else {
-			log.Log.Info("deleteMetrics: could not remove target metrics")
-		}
-	}
 }
