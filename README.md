@@ -2,11 +2,11 @@
 
 `custom-metrics-generator` is generate prometheus metrics using custom resource definition.  
 
-# Build image
+## Build image
 
 `$ IMG=<<your repository>>:<<tag>> make docker-build`
 
-# Deploy CRD and controller
+## Deploy CRD and controller
 
 See `manifests/deploy`.  
 
@@ -14,7 +14,7 @@ Modify `image` in `manifest/deploy/deployment.yaml` and kustomize build.
 
 `$ kustomize build manifests/deploy | kubectl apply -f -`
 
-## Flags
+### Flags
 
 ```
 -interval-seconds int
@@ -27,11 +27,11 @@ Modify `image` in `manifest/deploy/deployment.yaml` and kustomize build.
     set timezone (default "UTC")
 ```
 
-# Deploy resources
+## Deploy resources
 
 Sample is in `manifest/resource`.  
 
-## Fields
+### Fields
 
 Name|Type|Required|Description
 ---|---|---|---
@@ -43,9 +43,9 @@ spec.metrics.start|string|Yes| __Cron formatted__ schedule to start output metri
 spec.metrics.duration|duration|Yes|Duration to keep output metrics.
 spec.metrics.value|int|Yes|Value of output metrics.
 
-## Rules of define metrics
+### Rules of define metrics
 
-### Naming
+#### Naming
 
 `spec.metricsName` must match the regex `[a-zA-Z_:][a-zA-Z0-9_:]*`.  
 Keys in `spec.labels` must match the regex `[a-zA-Z_][a-zA-Z0-9_]*` and cannot start with two or more `_`.  
@@ -53,7 +53,7 @@ See also [prometheus docs](https://prometheus.io/docs/concepts/data_model/#metri
 
 If invalid character is used, it is replaced by `_`.
 
-## Multiple metrics
+### Multiple metrics
 
 `spec.metrics` field is specified as array, so you can define more than one.  
 If multiple metrics have overlapping schedules, new schedule metrics will be used.
