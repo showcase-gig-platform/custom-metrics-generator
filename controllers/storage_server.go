@@ -11,7 +11,16 @@ import (
 )
 
 type storage struct {
-	metrics map[string]*dto.MetricFamily
+	metrics map[string]*metricFamily
+}
+
+type metricFamily dto.MetricFamily
+
+func (f metricFamily) update(v int) {
+	// forで回しているがMetricの要素はひとつしかない
+	for _, m := range f.Metric {
+		m.Gauge.Value = proto.Float64(float64(v))
+	}
 }
 
 type metric struct {
@@ -34,12 +43,12 @@ func init() {
 
 func NewStorage() *storage {
 	return &storage{
-		metrics: map[string]*dto.MetricFamily{},
+		metrics: map[string]*metricFamily{},
 	}
 }
 
 func (s *storage) write(k string, m metric) {
-	s.metrics[k] = &dto.MetricFamily{
+	s.metrics[k] = &metricFamily{
 		Name: proto.String(m.name),
 		Help: proto.String("auto generateted metrics by " + k),
 		Type: dto.MetricType_GAUGE.Enum(),
@@ -61,15 +70,10 @@ func (s *storage) delete(k string) {
 func (s *storage) gather() ([]*dto.MetricFamily, error) {
 	var result []*dto.MetricFamily
 	for _, metrics := range s.metrics {
-		result = append(result, metrics)
+		resume := dto.MetricFamily(*metrics)
+		result = append(result, &resume)
 	}
 	return result, nil
-}
-
-func (s *storage) updateValue(k string, v int) {
-	target := s.metrics[k]
-	metric := target.Metric[0]
-	metric.Gauge.Value = proto.Float64(float64(v))
 }
 
 func (s *storage) serve() {

@@ -160,7 +160,7 @@ func (r *MetricsSourceReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 }
 
 func (r *MetricsSourceReconciler) updateAllStatusAndMetrics(ctx context.Context) {
-	for key, _ := range metricsStorage.metrics {
+	for key, metrics := range metricsStorage.metrics {
 		nn, err := resumeNamespacedName(key)
 		if err != nil {
 			log.Log.Error(err, "failed to resume namespaced-name.")
@@ -181,7 +181,7 @@ func (r *MetricsSourceReconciler) updateAllStatusAndMetrics(ctx context.Context)
 		resource.Status = status
 		r.Status().Update(ctx, &resource)
 
-		metricsStorage.updateValue(key, status.CurrentValue)
+		metrics.update(status.CurrentValue)
 	}
 }
 
