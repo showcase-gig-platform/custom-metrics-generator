@@ -1,7 +1,5 @@
 # 開発に関して
 
----
-
 ## 前提
 
 controllerの作成にkubebuilderを使用しています。  

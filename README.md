@@ -1,7 +1,5 @@
 # custom-metrics-generator
 
----
-
 `custom-metrics-generator` is generate prometheus metrics using custom resource definition.  
 
 # Build image
