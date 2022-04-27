@@ -26,7 +26,7 @@ spec:
           securityContext:
             allowPrivilegeEscalation: false
           ports:
-            - containerPort: 8080
+            - containerPort: 8082
               protocol: TCP
               name: metrics
           livenessProbe:
