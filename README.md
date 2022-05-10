@@ -1,6 +1,7 @@
 # custom-metrics-generator
 
 `custom-metrics-generator` is generate prometheus metrics using custom resource definition.  
+You can output any metrics to http endpoints like a prometheus exporter.
 
 ## Build image
 
