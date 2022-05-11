@@ -22,6 +22,10 @@ See `manifest/deploy`.
 ### Flags
 
 ```
+-generate-metrics-bind-address string
+    Generated metrics endpoint addr. (default ":8082")
+-generate-metrics-path string
+    Generated metrics path. (default "/metrics")
 -interval-seconds int
     interval seconds to fetch metrics (default 60)
 -metrics-prefix string
