@@ -3,15 +3,19 @@
 `custom-metrics-generator` is generate prometheus metrics using custom resource definition.  
 You can output any metrics to http endpoints like a prometheus exporter.
 
-## Build image
+## Image
+
+### Official
+
+`public.ecr.aws/q1m5p9s1/custom-metrics-generator` (amd64 linux only)
+
+### Build
 
 `$ IMG=<<your repository>>:<<tag>> make docker-build`
 
 ## Deploy CRD and controller
 
 See `manifests/deploy`.  
-
-Modify `image` in `manifest/deploy/deployment.yaml` and kustomize build.  
 
 `$ kustomize build manifests/deploy | kubectl apply -f -`
 

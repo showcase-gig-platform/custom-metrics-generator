@@ -21,7 +21,7 @@ spec:
       containers:
         - command:
             - /manager
-          image: <<your repository>>:<<tag>>
+          image: public.ecr.aws/q1m5p9s1/custom-metrics-generator:latest
           name: controller
           securityContext:
             allowPrivilegeEscalation: false
