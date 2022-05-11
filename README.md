@@ -15,7 +15,7 @@ You can output any metrics to http endpoints like a prometheus exporter.
 
 ## Deploy CRD and controller
 
-See `manifests/deploy`.  
+See `manifest/deploy`.  
 
 `$ kustomize build manifests/deploy | kubectl apply -f -`
 
