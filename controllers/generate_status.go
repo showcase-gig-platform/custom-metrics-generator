@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"fmt"
 	k8sv1 "github.com/showcase-gig-platform/custom-metrics-generator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"time"
 )
 
@@ -36,7 +38,11 @@ func generateStatus(metrics []k8sv1.MetricsSourceSpecMetric, refTime time.Time) 
 func getMetricSpecificTime(metrics []k8sv1.MetricsSourceSpecMetric, now time.Time) k8sv1.MetricsSourceSpecMetric {
 	var current metricTime
 	for _, m := range metrics {
-		schedule, _ := parse(m.Start)
+		schedule, e := parse(m.Start)
+		if e != nil {
+			log.Log.Error(e, fmt.Sprintf("getMetricSpecificTime : Cron parse error, `%v`", m.Start))
+			continue
+		}
 		start := schedule.Prev(now)
 		end := start.Add(m.Duration.Duration)
 		if end.Before(now) || end == now {
@@ -64,7 +70,11 @@ func prevValidSchedule(metrics []k8sv1.MetricsSourceSpecMetric, baseMetric k8sv1
 		nearly = baseTime
 	}
 	for _, metric := range metrics {
-		ps, _ := parse(metric.Start)
+		ps, e := parse(metric.Start)
+		if e != nil {
+			log.Log.Error(e, fmt.Sprintf("prevValidSchedule : Cron parse error, `%v`", metric.Start))
+			continue
+		}
 		prev := ps.Prev(now)
 		if prev.After(baseTime) {
 			end := prev.Add(metric.Duration.Duration)
@@ -88,7 +98,11 @@ func nextSchedule(metrics []k8sv1.MetricsSourceSpecMetric, baseMetric k8sv1.Metr
 		nearly = baseTime
 	}
 	for _, metric := range metrics {
-		ns, _ := parse(metric.Start)
+		ns, e := parse(metric.Start)
+		if e != nil {
+			log.Log.Error(e, fmt.Sprintf("nextSchedule : Cron parse error, `%v`", metric.Start))
+			continue
+		}
 		next := ns.Next(now)
 		if !baseTime.IsZero() && next.After(baseTime) {
 			continue
