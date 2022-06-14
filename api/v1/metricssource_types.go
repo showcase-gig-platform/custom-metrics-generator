@@ -68,7 +68,7 @@ type MetricsSourceStatus struct {
 	LastRefreshTime metav1.Time `json:"lastRefreshTime,omitempty"`
 
 	// +optional
-	Conditinos []metav1.Condition `json:"conditinos,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 type MetricsSourceStatusSchedule struct {

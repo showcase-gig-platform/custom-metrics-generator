@@ -139,8 +139,8 @@ func (in *MetricsSourceStatus) DeepCopyInto(out *MetricsSourceStatus) {
 	in.Last.DeepCopyInto(&out.Last)
 	in.Next.DeepCopyInto(&out.Next)
 	in.LastRefreshTime.DeepCopyInto(&out.LastRefreshTime)
-	if in.Conditinos != nil {
-		in, out := &in.Conditinos, &out.Conditinos
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
 		*out = make([]metav1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])

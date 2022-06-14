@@ -119,7 +119,7 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			condition := []metav1.Condition{
 				generateConditionReady(false, "GetFailed", "Failed to get resource."),
 			}
-			resource.Status.Conditinos = condition
+			resource.Status.Conditions = condition
 			if e := r.Status().Update(ctx, &resource); e != nil {
 				log.Log.Error(e, "Failed to update resource status.")
 			}
@@ -135,7 +135,7 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			condition := []metav1.Condition{
 				generateConditionReady(false, "InvalidCron", "Cron syntax is not valid."),
 			}
-			resource.Status.Conditinos = condition
+			resource.Status.Conditions = condition
 			if e := r.Status().Update(ctx, &resource); e != nil {
 				log.Log.Error(e, "Failed to update resource status.")
 			}
@@ -149,7 +149,7 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	status := generateStatus(resource.Spec.Metrics, time.Now())
 
-	status.Conditinos = condition
+	status.Conditions = condition
 	resource.Status = status
 	if e := r.Status().Update(ctx, &resource); e != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to update resource status : %w", e)
@@ -217,8 +217,8 @@ func (r *MetricsSourceReconciler) updateAllStatusAndMetrics(ctx context.Context)
 		l := getLocation(resource.Spec.Timezone)
 		refTime := time.Now().In(l).Add(o)
 		status := generateStatus(resource.Spec.Metrics, refTime)
-		conditions := resource.Status.Conditinos // Status.Conditionsは変更しないので引き継ぐ（差分だけpatchできればそうしたい）
-		status.Conditinos = conditions
+		conditions := resource.Status.Conditions // Status.Conditionsは変更しないので引き継ぐ（差分だけpatchできればそうしたい）
+		status.Conditions = conditions
 		resource.Status = status
 		if e := r.Status().Update(ctx, &resource); e != nil {
 			log.Log.Error(e, "Failed to update resource status.")
