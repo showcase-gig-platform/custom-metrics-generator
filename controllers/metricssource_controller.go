@@ -120,7 +120,9 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				generateConditionReady(false, "GetFailed", "Failed to get resource."),
 			}
 			resource.Status.Conditinos = condition
-			r.Status().Update(ctx, &resource)
+			if e := r.Status().Update(ctx, &resource); e != nil {
+				log.Log.Error(e, "Failed to update resource status.")
+			}
 			return ctrl.Result{}, fmt.Errorf("reconcile - failed to get resource : %w", e)
 		}
 	}
@@ -134,7 +136,9 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				generateConditionReady(false, "InvalidCron", "Cron syntax is not valid."),
 			}
 			resource.Status.Conditinos = condition
-			r.Status().Update(ctx, &resource)
+			if e := r.Status().Update(ctx, &resource); e != nil {
+				log.Log.Error(e, "Failed to update resource status.")
+			}
 			return ctrl.Result{}, fmt.Errorf("reconcile - failed to parse cron : %w", e)
 		}
 	}
@@ -147,7 +151,9 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	status.Conditinos = condition
 	resource.Status = status
-	r.Status().Update(ctx, &resource)
+	if e := r.Status().Update(ctx, &resource); e != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to update resource status : %w", e)
+	}
 
 	metricsName := convertPromFormatName(prefix + resource.Spec.MetricsName)
 	labels := formatAllLabels(resource.Spec.Labels)
@@ -214,7 +220,9 @@ func (r *MetricsSourceReconciler) updateAllStatusAndMetrics(ctx context.Context)
 		conditions := resource.Status.Conditinos // Status.Conditionsは変更しないので引き継ぐ（差分だけpatchできればそうしたい）
 		status.Conditinos = conditions
 		resource.Status = status
-		r.Status().Update(ctx, &resource)
+		if e := r.Status().Update(ctx, &resource); e != nil {
+			log.Log.Error(e, "Failed to update resource status.")
+		}
 
 		metrics.update(status.CurrentValue)
 	}
