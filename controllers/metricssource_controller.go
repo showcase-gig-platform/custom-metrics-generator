@@ -23,12 +23,16 @@ import (
 	"github.com/showcase-gig-platform/cron/v3"
 	k8sv1 "github.com/showcase-gig-platform/custom-metrics-generator/api/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"reflect"
 	"regexp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"strings"
 	"time"
 )
@@ -112,6 +116,11 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			return ctrl.Result{}, nil
 		} else {
 			// それ以外のエラー
+			condition := []metav1.Condition{
+				generateConditionReady(false, "GetFailed", "Failed to get resource."),
+			}
+			resource.Status.Conditinos = condition
+			r.Status().Update(ctx, &resource)
 			return ctrl.Result{}, fmt.Errorf("reconcile - failed to get resource : %w", e)
 		}
 	}
@@ -121,11 +130,22 @@ func (r *MetricsSourceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	for _, item := range resource.Spec.Metrics {
 		cs := item.Start
 		if _, e := parse(cs); e != nil {
+			condition := []metav1.Condition{
+				generateConditionReady(false, "InvalidCron", "Cron syntax is not valid."),
+			}
+			resource.Status.Conditinos = condition
+			r.Status().Update(ctx, &resource)
 			return ctrl.Result{}, fmt.Errorf("reconcile - failed to parse cron : %w", e)
 		}
 	}
 
+	condition := []metav1.Condition{
+		generateConditionReady(true, "ValidResource", "Resource is valid"),
+	}
+
 	status := generateStatus(resource.Spec.Metrics, time.Now())
+
+	status.Conditinos = condition
 	resource.Status = status
 	r.Status().Update(ctx, &resource)
 
@@ -154,8 +174,21 @@ func (r *MetricsSourceReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		}
 	}()
 
+	// specの変更がない場合はreconcileしない
+	p := predicate.Funcs{
+		UpdateFunc: func(event event.UpdateEvent) bool {
+			oldObj := event.ObjectOld.(*k8sv1.MetricsSource)
+			newObj := event.ObjectNew.(*k8sv1.MetricsSource)
+			if reflect.DeepEqual(oldObj.Spec, newObj.Spec) {
+				return false
+			}
+			return true
+		},
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&k8sv1.MetricsSource{}).
+		WithEventFilter(p).
 		Complete(r)
 }
 
@@ -178,6 +211,8 @@ func (r *MetricsSourceReconciler) updateAllStatusAndMetrics(ctx context.Context)
 		l := getLocation(resource.Spec.Timezone)
 		refTime := time.Now().In(l).Add(o)
 		status := generateStatus(resource.Spec.Metrics, refTime)
+		conditions := resource.Status.Conditinos // Status.Conditionsは変更しないので引き継ぐ（差分だけpatchできればそうしたい）
+		status.Conditinos = conditions
 		resource.Status = status
 		r.Status().Update(ctx, &resource)
 
@@ -230,4 +265,18 @@ func getOffset(o *int) time.Duration {
 		return time.Duration(*o) * time.Second
 	}
 	return time.Duration(offset) * time.Second
+}
+
+func generateConditionReady(status bool, reason string, message string) metav1.Condition {
+	statusString := metav1.ConditionFalse
+	if status {
+		statusString = metav1.ConditionTrue
+	}
+	return metav1.Condition{
+		Type:               "Ready",
+		Status:             statusString,
+		Reason:             reason,
+		Message:            message,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+	}
 }

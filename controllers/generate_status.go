@@ -30,6 +30,7 @@ func generateStatus(metrics []k8sv1.MetricsSourceSpecMetric, refTime time.Time) 
 			Schedule: metav1.Time{Time: nextEventTime},
 			Value:    nextMetric.Value,
 		},
+		LastRefreshTime: metav1.Time{Time: time.Now()},
 	}
 }
 
