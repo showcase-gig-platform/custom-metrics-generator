@@ -68,3 +68,33 @@ If invalid character is used, it is replaced by `_`.
 If multiple metrics have overlapping schedules, new schedule metrics will be used.
 
 ![metrics sample](images/sample.png)
+
+## Argo CD Custom Health Check
+
+If you are using Argo CD, you can set argo-cd custom health check by adding below to configMap `argocd-cm`.  
+For more information, https://argo-cd.readthedocs.io/en/stable/operator-manual/health/
+
+```
+  resource.customizations.health.k8s.oder.com_MetricsSource: |
+    hs = {}
+    if obj.status ~= nil then
+      if obj.status.conditions ~= nil then
+        for i, condition in ipairs(obj.status.conditions) do
+          if condition.type == "Ready" and condition.status == "False" then
+            hs.status = "Degraded"
+            hs.message = condition.message
+            return hs
+          end
+          if condition.type == "Ready" and condition.status == "True" then
+            hs.status = "Healthy"
+            hs.message = condition.message
+            return hs
+          end
+        end
+      end
+    end
+
+    hs.status = "Progressing"
+    hs.message = "Waiting for Reconcile"
+    return hs
+```
