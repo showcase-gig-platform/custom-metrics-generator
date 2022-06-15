@@ -42,15 +42,15 @@ Sample is in `manifest/resource`.
 
 ### Fields
 
-Name|Type|Required|Description
----|---|---|---
-spec.metricsName|string|Yes|Name of generated metrics.
-spec.offsetSeconds|int|No|Offset seconds to generate metrics (override flag setting)
-spec.timezone|string|No|Set timezone (override flag setting)
-spec.labels|map[string]string|No|Labels to be added to generated metrics.
-spec.metrics.start|string|Yes| __Cron formatted__ schedule to start output metrics.
-spec.metrics.duration|duration|Yes|Duration to keep output metrics.
-spec.metrics.value|int|Yes|Value of output metrics.
+| Name                  | Type              | Required | Description                                                |
+|-----------------------|-------------------|----------|------------------------------------------------------------|
+| spec.metricsName      | string            | Yes      | Name of generated metrics.                                 |
+| spec.offsetSeconds    | int               | No       | Offset seconds to generate metrics (override flag setting) |
+| spec.timezone         | string            | No       | Set timezone (override flag setting)                       |
+| spec.labels           | map[string]string | No       | Labels to be added to generated metrics.                   |
+| spec.metrics.start    | string            | Yes      | __Cron formatted__ schedule to start output metrics.       |
+| spec.metrics.duration | duration          | Yes      | Duration to keep output metrics.                           |
+| spec.metrics.value    | int               | Yes      | Value of output metrics.                                   |
 
 ### Rules of define metrics
 
