@@ -901,8 +901,15 @@ func Test_generateStatus(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := generateStatus(tt.args.metrics, tt.args.now); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("generateStatus() = %v, want %v", got, tt.want)
+			got := generateStatus(tt.args.metrics, tt.args.now)
+			if !reflect.DeepEqual(got.CurrentValue, tt.want.CurrentValue) {
+				t.Errorf("CurrentValue = %v, want %v", got, tt.want)
+			}
+			if !reflect.DeepEqual(got.Last, tt.want.Last) {
+				t.Errorf("LastSchedule = %v, want %v", got, tt.want)
+			}
+			if !reflect.DeepEqual(got.Next, tt.want.Next) {
+				t.Errorf("NextSchedule = %v, want %v", got, tt.want)
 			}
 		})
 	}

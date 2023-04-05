@@ -444,8 +444,15 @@ func Test_offset(t *testing.T) {
 				flag.CommandLine.Set("offset-seconds", tt.args.flagOffset)
 			}
 			now := tt.args.now.Add(getOffset(tt.args.specOffset))
-			if got := generateStatus(tt.args.metrics, now); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("generateStatus() = %v, want %v", got, tt.want)
+			got := generateStatus(tt.args.metrics, now)
+			if !reflect.DeepEqual(got.CurrentValue, tt.want.CurrentValue) {
+				t.Errorf("CurrentValue = %v, want %v", got, tt.want)
+			}
+			if !reflect.DeepEqual(got.Last, tt.want.Last) {
+				t.Errorf("LastSchedule = %v, want %v", got, tt.want)
+			}
+			if !reflect.DeepEqual(got.Next, tt.want.Next) {
+				t.Errorf("NextSchedule = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -549,8 +556,15 @@ func Test_timezone(t *testing.T) {
 				flag.CommandLine.Set("timezone", tt.args.flagTimezone)
 			}
 			now := tt.args.now.In(getLocation(tt.args.specTimezone))
-			if got := generateStatus(tt.args.metrics, now); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("generateStatus() = %v, want %v", got, tt.want)
+			got := generateStatus(tt.args.metrics, now)
+			if !reflect.DeepEqual(got.CurrentValue, tt.want.CurrentValue) {
+				t.Errorf("CurrentValue = %v, want %v", got, tt.want)
+			}
+			if !reflect.DeepEqual(got.Last, tt.want.Last) {
+				t.Errorf("LastSchedule = %v, want %v", got, tt.want)
+			}
+			if !reflect.DeepEqual(got.Next, tt.want.Next) {
+				t.Errorf("NextSchedule = %v, want %v", got, tt.want)
 			}
 		})
 	}

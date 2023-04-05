@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"flag"
-	"github.com/golang/protobuf/proto"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	dto "github.com/prometheus/client_model/go"
+	"google.golang.org/protobuf/proto"
 	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
